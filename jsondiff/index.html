@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>JSON Comparison Dashboard</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f0f2f5;
+      color: #333;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+    .editor {
+      flex: 1 1 45%;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+    }
+    .editor h3 {
+      margin-top: 0;
+      color: #34495e;
+    }
+    textarea {
+      min-height: 250px;
+      resize: vertical;
+      font-family: monospace;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      background: #fafafa;
+    }
+    button {
+      margin-top: 8px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      background: #3498db;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    .actions {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .actions button {
+      margin: 0 10px;
+    }
+    pre {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+    .diff-added { background-color: #eafbea; padding: 5px; border-radius: 4px; }
+    .diff-removed { background-color: #fdeaea; padding: 5px; border-radius: 4px; }
+    .diff-changed { background-color: #fff8e1; padding: 5px; border-radius: 4px; }
+
+    /* Responsive tweaks */
+    @media (max-width: 768px) {
+      .editor { flex: 1 1 100%; }
+    }
+  </style>
+</head>
+<body>
+  <h2>✨ JSON Comparison Dashboard ✨</h2>
+  <div class="container">
+    <div class="editor">
+      <h3>JSON File 1</h3>
+      <input type="file" id="file1" accept=".json" />
+      <textarea id="editor1"></textarea>
+      <button onclick="beautifyJSON('editor1')">Beautify JSON 1</button>
+    </div>
+    <div class="editor">
+      <h3>JSON File 2</h3>
+      <input type="file" id="file2" accept=".json" />
+      <textarea id="editor2"></textarea>
+      <button onclick="beautifyJSON('editor2')">Beautify JSON 2</button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button onclick="compareJSON()">Compare JSON</button>
+    <button onclick="beautifyBoth()">Beautify Both</button>
+    <button onclick="exportDiff()">Export Diff</button>
+  </div>
+
+  <h3>Diff Output</h3>
+  <pre id="diffOutput"></pre>
+
+  <script>
+    let lastDiffs = []; // store diffs globally
+
+    // Load JSON files into editors
+    function loadFile(inputId, editorId) {
+      const fileInput = document.getElementById(inputId);
+      const editor = document.getElementById(editorId);
+
+      fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            try {
+              const jsonData = JSON.parse(e.target.result);
+              editor.value = JSON.stringify(jsonData, null, 2); // Beautify
+            } catch (err) {
+              alert("❌ Invalid JSON file!");
+            }
+          };
+          reader.readAsText(file);
+        }
+      });
+    }
+
+    loadFile("file1", "editor1");
+    loadFile("file2", "editor2");
+
+    // Validate JSON
+    function validateJSON(text) {
+      try { JSON.parse(text); return true; } catch { return false; }
+    }
+
+    // Beautify JSON in a specific editor
+    function beautifyJSON(editorId) {
+      const editor = document.getElementById(editorId);
+      if (!validateJSON(editor.value)) {
+        alert("❌ Invalid JSON, cannot beautify.");
+        return;
+      }
+      const obj = JSON.parse(editor.value);
+      editor.value = JSON.stringify(obj, null, 2);
+    }
+
+    // Beautify both editors
+    function beautifyBoth() {
+      beautifyJSON("editor1");
+      beautifyJSON("editor2");
+    }
+
+    // Recursive diff function
+    function diffObjects(obj1, obj2, path = "") {
+      const diffs = [];
+      const allKeys = new Set([...Object.keys(obj1), ...Object.keys(obj2)]);
+      allKeys.forEach(key => {
+        const newPath = path ? `${path}.${key}` : key;
+        if (!(key in obj1)) {
+          diffs.push({ type: "added", path: newPath, value: obj2[key] });
+        } else if (!(key in obj2)) {
+          diffs.push({ type: "removed", path: newPath, value: obj1[key] });
+        } else {
+          if (typeof obj1[key] === "object" && obj1[key] !== null &&
+              typeof obj2[key] === "object" && obj2[key] !== null) {
+            diffs.push(...diffObjects(obj1[key], obj2[key], newPath));
+          } else if (JSON.stringify(obj1[key]) !== JSON.stringify(obj2[key])) {
+            diffs.push({ type: "changed", path: newPath, oldValue: obj1[key], newValue: obj2[key] });
+          }
+        }
+      });
+      return diffs;
+    }
+
+    // Compare JSON
+    function compareJSON() {
+      const json1 = document.getElementById("editor1").value;
+      const json2 = document.getElementById("editor2").value;
+      const output = document.getElementById("diffOutput");
+
+      if (!validateJSON(json1) || !validateJSON(json2)) {
+        output.textContent = "❌ Invalid JSON in one or both editors.";
+        lastDiffs = [];
+        return;
+      }
+
+      const obj1 = JSON.parse(json1);
+      const obj2 = JSON.parse(json2);
+
+      const diffs = diffObjects(obj1, obj2);
+      lastDiffs = diffs; // save for export
+
+      if (diffs.length === 0) {
+        output.textContent = "✅ JSON files are identical.";
+      } else {
+        output.innerHTML = diffs.map(d => {
+          if (d.type === "added") {
+            return `<div class="diff-added">+ ${d.path}: ${JSON.stringify(d.value)}</div>`;
+          } else if (d.type === "removed") {
+            return `<div class="diff-removed">- ${d.path}: ${JSON.stringify(d.value)}</div>`;
+          } else if (d.type === "changed") {
+            return `<div class="diff-changed">~ ${d.path}: File1=${JSON.stringify(d.oldValue)} | File2=${JSON.stringify(d.newValue)}</div>`;
+          }
+        }).join("");
+      }
+    }
+
+    // Export diff results to file
+    function exportDiff() {
+      if (!lastDiffs || lastDiffs.length === 0) {
+        alert("⚠️ No diff results to export. Please run a comparison first.");
+        return;
+      }
+
+      const blob = new Blob([JSON.stringify(lastDiffs, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "json_diff_results.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
