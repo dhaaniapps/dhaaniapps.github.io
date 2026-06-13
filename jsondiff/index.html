@@ -2,238 +2,623 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>JSON Comparison Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced JSON Diff & Transformation Dashboard</title>
   <style>
+    :root {
+      --primary-color: #3498db;
+      --primary-hover: #2980b9;
+      --bg-color: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-color: #2c3e50;
+      --border-color: #dee2e6;
+      --added-bg: #d4edda;
+      --added-color: #155724;
+      --removed-bg: #f8d7da;
+      --removed-color: #721c24;
+      --changed-bg: #fff3cd;
+      --changed-color: #856404;
+      --header-bg: #ffffff;
+    }
+
+    [data-theme="dark"] {
+      --primary-color: #3498db;
+      --primary-hover: #5dade2;
+      --bg-color: #1a1a1a;
+      --card-bg: #2d2d2d;
+      --text-color: #e0e0e0;
+      --border-color: #404040;
+      --added-bg: #1b3d21;
+      --added-color: #a3d9a5;
+      --removed-bg: #4a1c1f;
+      --removed-color: #f5b7b1;
+      --changed-bg: #4a3c1c;
+      --changed-color: #f9e79f;
+      --header-bg: #252525;
+    }
+
     body {
-      font-family: "Segoe UI", Arial, sans-serif;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       margin: 0;
-      padding: 20px;
-      background: #f0f2f5;
-      color: #333;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      transition: background-color 0.3s, color 0.3s;
     }
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #2c3e50;
-    }
-    .container {
+
+    .top-bar {
+      background: var(--header-bg);
+      padding: 10px 20px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-      justify-content: center;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    .editor {
-      flex: 1 1 45%;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      padding: 15px;
+
+    .main-content {
+      padding: 20px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 1100px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    .editor-section {
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 20px;
       display: flex;
       flex-direction: column;
+      border: 1px solid var(--border-color);
     }
-    .editor h3 {
-      margin-top: 0;
-      color: #34495e;
+
+    .editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
     }
+
+    .status {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: bold;
+    }
+
+    .status.valid { background: #e3f9e5; color: #1f8b24; }
+    .status.invalid { background: #ffe3e3; color: #d63031; }
+
     textarea {
-      min-height: 250px;
+      width: 100%;
+      height: 450px;
+      box-sizing: border-box;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      padding: 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: rgba(0,0,0,0.02);
+      color: inherit;
       resize: vertical;
-      font-family: monospace;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      margin-bottom: 10px;
-      background: #fafafa;
+      transition: border-color 0.2s;
     }
+
+    [data-theme="dark"] textarea { background: rgba(0,0,0,0.2); }
+
+    .button-group {
+      display: flex;
+      gap: 5px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
     button {
-      margin-top: 8px;
-      padding: 10px 15px;
-      border: none;
+      padding: 6px 12px;
+      border: 1px solid var(--border-color);
       border-radius: 6px;
-      background: #3498db;
-      color: #fff;
+      background: var(--card-bg);
+      color: var(--text-color);
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    button.primary {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1rem;
+    }
+
+    button.danger { color: #e74c3c; }
+    button.danger:hover { background: #e74c3c; color: white; }
+
+    .filters {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      margin: 20px 0;
+      padding: 15px;
+      background: var(--card-bg);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .search-input {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-color);
+      color: var(--text-color);
+      flex: 1;
+    }
+
+    .diff-section {
+      max-width: 1400px;
+      margin: 0 auto 50px auto;
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+    }
+
+    .diff-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .diff-table th, .diff-table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+      overflow-wrap: break-word;
+    }
+
+    .diff-row-added { background-color: var(--added-bg); }
+    .diff-row-removed { background-color: var(--removed-bg); }
+    .diff-row-changed { background-color: var(--changed-bg); }
+
+    .path-cell {
+      font-family: monospace;
       font-weight: bold;
       cursor: pointer;
-      transition: background 0.3s;
+      color: var(--primary-color);
     }
-    button:hover {
-      background: #2980b9;
-    }
-    .actions {
-      text-align: center;
-      margin: 20px 0;
-    }
-    .actions button {
-      margin: 0 10px;
-    }
-    pre {
-      background: #fff;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      white-space: pre-wrap;
-      font-family: monospace;
-    }
-    .diff-added { background-color: #eafbea; padding: 5px; border-radius: 4px; }
-    .diff-removed { background-color: #fdeaea; padding: 5px; border-radius: 4px; }
-    .diff-changed { background-color: #fff8e1; padding: 5px; border-radius: 4px; }
 
-    /* Responsive tweaks */
-    @media (max-width: 768px) {
-      .editor { flex: 1 1 100%; }
+    .path-cell:hover::after {
+      content: ' 📋';
+      font-size: 0.8rem;
     }
+
+    .side-by-side {
+      display: flex;
+      gap: 2px;
+      background: var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    .side-panel {
+      flex: 1;
+      background: var(--card-bg);
+      padding: 10px;
+      min-height: 200px;
+      overflow-x: auto;
+    }
+
+    .hidden { display: none; }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+    }
+
+    .switch input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px; width: 14px;
+      left: 3px; bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider { background-color: var(--primary-color); }
+    input:checked + .slider:before { transform: translateX(20px); }
   </style>
 </head>
 <body>
-  <h2>✨ JSON Comparison Dashboard ✨</h2>
+
+<div class="top-bar">
+  <div style="font-weight: bold;">JSON Diff Pro</div>
+  <div style="display: flex; gap: 15px; align-items: center;">
+    <button onclick="shareLink()">🔗 Share Link</button>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span>🌙</span>
+      <label class="switch">
+        <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="header">
+    <h1>✨ Advanced JSON Toolkit ✨</h1>
+    <p>Compare, Flatten, Sort, and Share JSON objects.</p>
+  </div>
+
   <div class="container">
-    <div class="editor">
-      <h3>JSON File 1</h3>
-      <input type="file" id="file1" accept=".json" />
-      <textarea id="editor1"></textarea>
-      <button onclick="beautifyJSON('editor1')">Beautify JSON 1</button>
+    <div class="editor-section">
+      <div class="editor-header">
+        <h2>Source JSON</h2>
+        <span id="status1" class="status">Empty</span>
+      </div>
+      <textarea id="editor1" placeholder="Paste JSON 1..."></textarea>
+      <div class="button-group">
+        <button onclick="beautifyJSON('editor1')">Beautify</button>
+        <button onclick="transformJSON('editor1', 'sort')">Sort Keys</button>
+        <button onclick="transformJSON('editor1', 'flatten')">Flatten</button>
+        <button onclick="transformJSON('editor1', 'unescape')">Unescape</button>
+        <button onclick="transformJSON('editor1', 'base64')">B64 Decode</button>
+        <button onclick="copyToClipboard('editor1', this)">Copy</button>
+        <button class="danger" onclick="clearEditor('editor1')">Clear</button>
+      </div>
     </div>
-    <div class="editor">
-      <h3>JSON File 2</h3>
-      <input type="file" id="file2" accept=".json" />
-      <textarea id="editor2"></textarea>
-      <button onclick="beautifyJSON('editor2')">Beautify JSON 2</button>
+
+    <div class="editor-section">
+      <div class="editor-header">
+        <h2>Target JSON</h2>
+        <span id="status2" class="status">Empty</span>
+      </div>
+      <textarea id="editor2" placeholder="Paste JSON 2..."></textarea>
+      <div class="button-group">
+        <button onclick="beautifyJSON('editor2')">Beautify</button>
+        <button onclick="transformJSON('editor2', 'sort')">Sort Keys</button>
+        <button onclick="transformJSON('editor2', 'flatten')">Flatten</button>
+        <button onclick="transformJSON('editor2', 'unescape')">Unescape</button>
+        <button onclick="transformJSON('editor2', 'base64')">B64 Decode</button>
+        <button onclick="copyToClipboard('editor2', this)">Copy</button>
+        <button class="danger" onclick="clearEditor('editor2')">Clear</button>
+      </div>
     </div>
   </div>
 
-  <div class="actions">
-    <button onclick="compareJSON()">Compare JSON</button>
-    <button onclick="beautifyBoth()">Beautify Both</button>
-    <button onclick="exportDiff()">Export Diff</button>
+  <div style="text-align: center; margin: 30px 0;">
+    <button class="primary" onclick="compareJSON()">🚀 Compare Documents</button>
   </div>
 
-  <h3>Diff Output</h3>
-  <pre id="diffOutput"></pre>
+  <div class="diff-section">
+    <div class="editor-header">
+      <h2>Comparison Results</h2>
+      <div id="diffStats"></div>
+    </div>
 
-  <script>
-    let lastDiffs = []; // store diffs globally
+    <div class="filters">
+      <input type="text" id="diffSearch" class="search-input" placeholder="Search by path or value..." oninput="filterResults()">
+      <select id="diffTypeFilter" class="search-input" style="max-width: 150px;" onchange="filterResults()">
+        <option value="all">All Changes</option>
+        <option value="added">Added Only</option>
+        <option value="removed">Removed Only</option>
+        <option value="changed">Modified Only</option>
+      </select>
+      <button onclick="toggleViewMode()" id="viewModeBtn">View: Table</button>
+    </div>
 
-    // Load JSON files into editors
-    function loadFile(inputId, editorId) {
-      const fileInput = document.getElementById(inputId);
-      const editor = document.getElementById(editorId);
+    <div id="tableContainer">
+      <div id="diffOutput">
+        <div class="empty-state" style="text-align: center; padding: 40px; color: #999;">
+          Waiting for comparison...
+        </div>
+      </div>
+    </div>
 
-      fileInput.addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            try {
-              const jsonData = JSON.parse(e.target.result);
-              editor.value = JSON.stringify(jsonData, null, 2); // Beautify
-            } catch (err) {
-              alert("❌ Invalid JSON file!");
-            }
-          };
-          reader.readAsText(file);
-        }
-      });
-    }
+    <div id="sideBySideContainer" class="hidden">
+      <div class="side-by-side">
+        <div id="sideLeft" class="side-panel"></div>
+        <div id="sideRight" class="side-panel"></div>
+      </div>
+    </div>
 
-    loadFile("file1", "editor1");
-    loadFile("file2", "editor2");
+    <div style="margin-top: 20px;">
+      <button onclick="exportDiff()" id="exportBtn" disabled>Download Diff (JSON)</button>
+    </div>
+  </div>
+</div>
 
-    // Validate JSON
-    function validateJSON(text) {
-      try { JSON.parse(text); return true; } catch { return false; }
-    }
+<script>
+  let lastDiffs = [];
+  let viewMode = 'table';
 
-    // Beautify JSON in a specific editor
-    function beautifyJSON(editorId) {
-      const editor = document.getElementById(editorId);
-      if (!validateJSON(editor.value)) {
-        alert("❌ Invalid JSON, cannot beautify.");
+  // Initialize
+  window.onload = () => {
+    loadTheme();
+    setupValidation("editor1", "status1");
+    setupValidation("editor2", "status2");
+    loadFromLocalStorage();
+    parseUrlParams();
+  };
+
+  function toggleTheme() {
+    const isDark = document.getElementById('themeToggle').checked;
+    document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('json-diff-theme', isDark ? 'dark' : 'light');
+  }
+
+  function loadTheme() {
+    const saved = localStorage.getItem('json-diff-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.body.setAttribute('data-theme', saved);
+    document.getElementById('themeToggle').checked = (saved === 'dark');
+  }
+
+  function setupValidation(editorId, statusId) {
+    const editor = document.getElementById(editorId);
+    const status = document.getElementById(statusId);
+    const validate = () => {
+      const val = editor.value.trim();
+      localStorage.setItem('editor-' + editorId, val);
+      if (!val) { status.textContent = "Empty"; status.className = "status"; return; }
+      try { JSON.parse(val); status.textContent = "Valid JSON"; status.className = "status valid"; }
+      catch (e) { status.textContent = "Invalid JSON"; status.className = "status invalid"; }
+    };
+    editor.addEventListener('input', validate);
+  }
+
+  function loadFromLocalStorage() {
+    ['editor1', 'editor2'].forEach(id => {
+      const saved = localStorage.getItem('editor-' + id);
+      if (saved) {
+        document.getElementById(id).value = saved;
+        document.getElementById(id).dispatchEvent(new Event('input'));
+      }
+    });
+  }
+
+  function transformJSON(editorId, type) {
+    const el = document.getElementById(editorId);
+    try {
+      let val = el.value.trim();
+      if (type === 'base64') {
+        el.value = atob(val.replace(/['"]/g, ''));
+        el.dispatchEvent(new Event('input'));
         return;
       }
-      const obj = JSON.parse(editor.value);
-      editor.value = JSON.stringify(obj, null, 2);
-    }
 
-    // Beautify both editors
-    function beautifyBoth() {
-      beautifyJSON("editor1");
-      beautifyJSON("editor2");
-    }
+      let obj = JSON.parse(val);
+      if (type === 'sort') obj = sortObject(obj);
+      if (type === 'flatten') obj = flattenObject(obj);
+      if (type === 'unescape' && typeof obj === 'string') obj = JSON.parse(obj);
 
-    // Recursive diff function
-    function diffObjects(obj1, obj2, path = "") {
-      const diffs = [];
-      const allKeys = new Set([...Object.keys(obj1), ...Object.keys(obj2)]);
-      allKeys.forEach(key => {
-        const newPath = path ? `${path}.${key}` : key;
-        if (!(key in obj1)) {
-          diffs.push({ type: "added", path: newPath, value: obj2[key] });
-        } else if (!(key in obj2)) {
-          diffs.push({ type: "removed", path: newPath, value: obj1[key] });
-        } else {
-          if (typeof obj1[key] === "object" && obj1[key] !== null &&
-              typeof obj2[key] === "object" && obj2[key] !== null) {
-            diffs.push(...diffObjects(obj1[key], obj2[key], newPath));
-          } else if (JSON.stringify(obj1[key]) !== JSON.stringify(obj2[key])) {
-            diffs.push({ type: "changed", path: newPath, oldValue: obj1[key], newValue: obj2[key] });
-          }
-        }
-      });
+      el.value = JSON.stringify(obj, null, 2);
+      el.dispatchEvent(new Event('input'));
+    } catch (e) { alert("Transformation failed. Check if input is valid."); }
+  }
+
+  function sortObject(obj) {
+    if (Array.isArray(obj)) return obj.map(sortObject);
+    if (obj !== null && typeof obj === 'object') {
+      return Object.keys(obj).sort().reduce((acc, key) => {
+        acc[key] = sortObject(obj[key]);
+        return acc;
+      }, {});
+    }
+    return obj;
+  }
+
+  function flattenObject(obj, prefix = '', res = {}) {
+    for (let key in obj) {
+      let propName = prefix ? prefix + '.' + key : key;
+      if (typeof obj[key] === 'object' && obj[key] !== null) {
+        flattenObject(obj[key], propName, res);
+      } else {
+        res[propName] = obj[key];
+      }
+    }
+    return res;
+  }
+
+  function copyToClipboard(editorId, btn) {
+    const val = document.getElementById(editorId).value;
+    navigator.clipboard.writeText(val).then(() => {
+      const old = btn.innerText;
+      btn.innerText = "Copied!";
+      setTimeout(() => btn.innerText = old, 2000);
+    });
+  }
+
+  function clearEditor(editorId) {
+    if(confirm("Clear content?")) {
+      document.getElementById(editorId).value = "";
+      document.getElementById(editorId).dispatchEvent(new Event('input'));
+    }
+  }
+
+  function compareJSON() {
+    const v1 = document.getElementById("editor1").value;
+    const v2 = document.getElementById("editor2").value;
+    try {
+      const obj1 = JSON.parse(v1);
+      const obj2 = JSON.parse(v2);
+      lastDiffs = diffObjects(obj1, obj2);
+      renderResults();
+    } catch (e) { alert("Ensure both inputs are valid JSON."); }
+  }
+
+  function diffObjects(obj1, obj2, path = "") {
+    const diffs = [];
+    if (obj1 === obj2) return diffs;
+
+    if (typeof obj1 !== typeof obj2 || obj1 === null || obj2 === null) {
+      diffs.push({ type: "changed", path: path || "root", oldValue: obj1, newValue: obj2 });
       return diffs;
     }
 
-    // Compare JSON
-    function compareJSON() {
-      const json1 = document.getElementById("editor1").value;
-      const json2 = document.getElementById("editor2").value;
-      const output = document.getElementById("diffOutput");
-
-      if (!validateJSON(json1) || !validateJSON(json2)) {
-        output.textContent = "❌ Invalid JSON in one or both editors.";
-        lastDiffs = [];
-        return;
+    if (Array.isArray(obj1)) {
+      const maxLen = Math.max(obj1.length, obj2.length);
+      for (let i = 0; i < maxLen; i++) {
+        const p = `${path}[${i}]`;
+        if (i >= obj1.length) diffs.push({ type: "added", path: p, value: obj2[i] });
+        else if (i >= obj2.length) diffs.push({ type: "removed", path: p, value: obj1[i] });
+        else diffs.push(...diffObjects(obj1[i], obj2[i], p));
       }
+    } else if (typeof obj1 === 'object') {
+      const keys = new Set([...Object.keys(obj1), ...Object.keys(obj2)]);
+      keys.forEach(k => {
+        const p = path ? `${path}.${k}` : k;
+        if (!(k in obj1)) diffs.push({ type: "added", path: p, value: obj2[k] });
+        else if (!(k in obj2)) diffs.push({ type: "removed", path: p, value: obj1[k] });
+        else diffs.push(...diffObjects(obj1[k], obj2[k], p));
+      });
+    } else if (obj1 !== obj2) {
+      diffs.push({ type: "changed", path: path || "root", oldValue: obj1, newValue: obj2 });
+    }
+    return diffs;
+  }
 
-      const obj1 = JSON.parse(json1);
-      const obj2 = JSON.parse(json2);
+  function renderResults() {
+    const output = document.getElementById("diffOutput");
+    const stats = document.getElementById("diffStats");
+    const exportBtn = document.getElementById("exportBtn");
 
-      const diffs = diffObjects(obj1, obj2);
-      lastDiffs = diffs; // save for export
-
-      if (diffs.length === 0) {
-        output.textContent = "✅ JSON files are identical.";
-      } else {
-        output.innerHTML = diffs.map(d => {
-          if (d.type === "added") {
-            return `<div class="diff-added">+ ${d.path}: ${JSON.stringify(d.value)}</div>`;
-          } else if (d.type === "removed") {
-            return `<div class="diff-removed">- ${d.path}: ${JSON.stringify(d.value)}</div>`;
-          } else if (d.type === "changed") {
-            return `<div class="diff-changed">~ ${d.path}: File1=${JSON.stringify(d.oldValue)} | File2=${JSON.stringify(d.newValue)}</div>`;
-          }
-        }).join("");
-      }
+    if (lastDiffs.length === 0) {
+      output.innerHTML = '<div style="color: #27ae60; text-align:center; padding: 20px;">Identical!</div>';
+      exportBtn.disabled = true;
+      return;
     }
 
-    // Export diff results to file
-    function exportDiff() {
-      if (!lastDiffs || lastDiffs.length === 0) {
-        alert("⚠️ No diff results to export. Please run a comparison first.");
-        return;
-      }
+    exportBtn.disabled = false;
+    filterResults(); // This will trigger the actual table/sbs rendering
+  }
 
-      const blob = new Blob([JSON.stringify(lastDiffs, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
+  function filterResults() {
+    const query = document.getElementById("diffSearch").value.toLowerCase();
+    const type = document.getElementById("diffTypeFilter").value;
 
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "json_diff_results.json";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+    const filtered = lastDiffs.filter(d => {
+      const matchesType = type === 'all' || d.type === type;
+      const valStr = JSON.stringify(d).toLowerCase();
+      return matchesType && valStr.includes(query);
+    });
 
-      URL.revokeObjectURL(url);
+    if (viewMode === 'table') {
+      renderTable(filtered);
+    } else {
+      renderSideBySide(filtered);
     }
-  </script>
+  }
+
+  function renderTable(diffs) {
+    let html = `<table class="diff-table"><thead><tr><th style="width:30%">Path</th><th style="width:10%">Type</th><th>Values</th></tr></thead><tbody>`;
+    html += diffs.map(d => `
+      <tr class="diff-row-${d.type}">
+        <td class="path-cell" onclick="copyText('${d.path}')">${d.path}</td>
+        <td style="text-align:center"><b>${d.type === 'added' ? '+' : d.type === 'removed' ? '-' : '~'}</b></td>
+        <td>${d.type === 'changed' ?
+          `Old: <small>${JSON.stringify(d.oldValue)}</small><br>New: <small>${JSON.stringify(d.newValue)}</small>` :
+          JSON.stringify(d.value || d.oldValue)}</td>
+      </tr>
+    `).join('');
+    html += `</tbody></table>`;
+    document.getElementById("diffOutput").innerHTML = html;
+  }
+
+  function renderSideBySide(diffs) {
+    // Basic implementation of Side by Side: Showing keys in two lists
+    document.getElementById("sideLeft").innerHTML = diffs.filter(d => d.type !== 'added').map(d => `<div class="diff-row-${d.type}">[${d.path}] ${JSON.stringify(d.oldValue || d.value)}</div>`).join('');
+    document.getElementById("sideRight").innerHTML = diffs.filter(d => d.type !== 'removed').map(d => `<div class="diff-row-${d.type}">[${d.path}] ${JSON.stringify(d.newValue || d.value)}</div>`).join('');
+  }
+
+  function toggleViewMode() {
+    viewMode = viewMode === 'table' ? 'side' : 'table';
+    document.getElementById("viewModeBtn").innerText = `View: ${viewMode === 'table' ? 'Table' : 'Split'}`;
+    document.getElementById("tableContainer").classList.toggle('hidden', viewMode !== 'table');
+    document.getElementById("sideBySideContainer").classList.toggle('hidden', viewMode !== 'side');
+    filterResults();
+  }
+
+  function copyText(txt) {
+    navigator.clipboard.writeText(txt);
+    alert("Path copied: " + txt);
+  }
+
+  function shareLink() {
+    const v1 = document.getElementById("editor1").value;
+    const v2 = document.getElementById("editor2").value;
+    const state = btoa(JSON.stringify({v1, v2}));
+    const url = window.location.origin + window.location.pathname + "?state=" + encodeURIComponent(state);
+    navigator.clipboard.writeText(url).then(() => alert("Shareable link copied to clipboard!"));
+  }
+
+  function parseUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+    const state = params.get('state');
+    if (state) {
+      try {
+        const {v1, v2} = JSON.parse(atob(state));
+        document.getElementById("editor1").value = v1;
+        document.getElementById("editor2").value = v2;
+        document.getElementById("editor1").dispatchEvent(new Event('input'));
+        document.getElementById("editor2").dispatchEvent(new Event('input'));
+        compareJSON();
+      } catch(e) {}
+    }
+  }
+
+  function exportDiff() {
+    const blob = new Blob([JSON.stringify(lastDiffs, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "diff_results.json";
+    a.click();
+  }
+</script>
+
 </body>
 </html>
