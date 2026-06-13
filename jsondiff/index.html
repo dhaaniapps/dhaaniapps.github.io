@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Advanced JSON Diff & Transformation Dashboard</title>
+  <title>Ultimate JSON Suite - Diff, Transform & Gen</title>
   <style>
     :root {
       --primary-color: #3498db;
@@ -19,6 +19,7 @@
       --changed-bg: #fff3cd;
       --changed-color: #856404;
       --header-bg: #ffffff;
+      --secondary-text: #7f8c8d;
     }
 
     [data-theme="dark"] {
@@ -35,6 +36,7 @@
       --changed-bg: #4a3c1c;
       --changed-color: #f9e79f;
       --header-bg: #252525;
+      --secondary-text: #bdc3c7;
     }
 
     body {
@@ -61,6 +63,8 @@
 
     .main-content {
       padding: 20px;
+      max-width: 1600px;
+      margin: 0 auto;
     }
 
     .header {
@@ -72,11 +76,9 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 20px;
-      max-width: 1400px;
-      margin: 0 auto;
     }
 
-    @media (max-width: 1100px) {
+    @media (max-width: 1200px) {
       .container { grid-template-columns: 1fr; }
     }
 
@@ -109,7 +111,7 @@
 
     textarea {
       width: 100%;
-      height: 450px;
+      height: 400px;
       box-sizing: border-box;
       font-family: 'Fira Code', 'Consolas', monospace;
       font-size: 13px;
@@ -119,30 +121,31 @@
       background: rgba(0,0,0,0.02);
       color: inherit;
       resize: vertical;
-      transition: border-color 0.2s;
     }
 
     [data-theme="dark"] textarea { background: rgba(0,0,0,0.2); }
 
-    .button-group {
-      display: flex;
-      gap: 5px;
-      margin-top: 10px;
-      flex-wrap: wrap;
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 8px;
+      margin-top: 15px;
     }
 
     button {
-      padding: 6px 12px;
+      padding: 6px 10px;
       border: 1px solid var(--border-color);
       border-radius: 6px;
       background: var(--card-bg);
       color: var(--text-color);
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       cursor: pointer;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 5px;
       transition: all 0.2s;
+      white-space: nowrap;
     }
 
     button:hover {
@@ -155,12 +158,24 @@
       background: var(--primary-color);
       color: white;
       border: none;
-      padding: 10px 20px;
+      padding: 12px 24px;
       font-size: 1rem;
+      margin: 0 auto;
     }
+
+    button.accent { background: #9b59b6; color: white; border: none; }
+    button.accent:hover { background: #8e44ad; }
 
     button.danger { color: #e74c3c; }
     button.danger:hover { background: #e74c3c; color: white; }
+
+    .diff-section {
+      margin-top: 30px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+    }
 
     .filters {
       display: flex;
@@ -168,27 +183,17 @@
       align-items: center;
       margin: 20px 0;
       padding: 15px;
-      background: var(--card-bg);
+      background: var(--bg-color);
       border-radius: 8px;
-      border: 1px solid var(--border-color);
     }
 
     .search-input {
       padding: 8px 12px;
       border-radius: 6px;
       border: 1px solid var(--border-color);
-      background: var(--bg-color);
+      background: var(--card-bg);
       color: var(--text-color);
       flex: 1;
-    }
-
-    .diff-section {
-      max-width: 1400px;
-      margin: 0 auto 50px auto;
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 20px;
-      border: 1px solid var(--border-color);
     }
 
     .diff-table {
@@ -204,9 +209,9 @@
       overflow-wrap: break-word;
     }
 
-    .diff-row-added { background-color: var(--added-bg); }
-    .diff-row-removed { background-color: var(--removed-bg); }
-    .diff-row-changed { background-color: var(--changed-bg); }
+    .diff-row-added { background-color: var(--added-bg); color: var(--added-color); }
+    .diff-row-removed { background-color: var(--removed-bg); color: var(--removed-color); }
+    .diff-row-changed { background-color: var(--changed-bg); color: var(--changed-color); }
 
     .path-cell {
       font-family: monospace;
@@ -215,27 +220,17 @@
       color: var(--primary-color);
     }
 
-    .path-cell:hover::after {
-      content: ' 📋';
-      font-size: 0.8rem;
+    .tree-node {
+      margin-left: 20px;
+      border-left: 1px dashed var(--border-color);
+      padding-left: 10px;
     }
 
-    .side-by-side {
-      display: flex;
-      gap: 2px;
-      background: var(--border-color);
-      border-radius: 8px;
-      overflow: hidden;
-      font-family: monospace;
-      font-size: 12px;
-    }
-
-    .side-panel {
-      flex: 1;
-      background: var(--card-bg);
-      padding: 10px;
-      min-height: 200px;
-      overflow-x: auto;
+    .tree-toggle {
+      cursor: pointer;
+      user-select: none;
+      font-weight: bold;
+      color: var(--primary-color);
     }
 
     .hidden { display: none; }
@@ -270,14 +265,43 @@
 
     input:checked + .slider { background-color: var(--primary-color); }
     input:checked + .slider:before { transform: translateX(20px); }
+
+    .modal {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      padding: 25px;
+      border-radius: 12px;
+      max-width: 800px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    pre {
+      background: rgba(0,0,0,0.05);
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    .hidden { display: none !important; }
   </style>
 </head>
-<body>
+<body onclick="handleGlobalClick(event)">
 
 <div class="top-bar">
-  <div style="font-weight: bold;">JSON Diff Pro</div>
+  <div style="font-weight: bold; font-size: 1.2rem;">JSON Suite Pro 🛠️</div>
   <div style="display: flex; gap: 15px; align-items: center;">
-    <button onclick="shareLink()">🔗 Share Link</button>
+    <button onclick="shareLink()">🔗 Share</button>
     <div style="display: flex; align-items: center; gap: 8px;">
       <span>🌙</span>
       <label class="switch">
@@ -290,65 +314,87 @@
 
 <div class="main-content">
   <div class="header">
-    <h1>✨ Advanced JSON Toolkit ✨</h1>
-    <p>Compare, Flatten, Sort, and Share JSON objects.</p>
+    <h1>Ultimate JSON Suite - Diff, Transform & Gen</h1>
+    <p>Diff, Transform, Validate, and Generate Code effortlessly.</p>
   </div>
 
   <div class="container">
+    <!-- Source Editor -->
     <div class="editor-section">
       <div class="editor-header">
-        <h2>Source JSON</h2>
+        <h3>Source (Original)</h3>
         <span id="status1" class="status">Empty</span>
       </div>
-      <textarea id="editor1" placeholder="Paste JSON 1..."></textarea>
-      <div class="button-group">
+      <div style="margin-bottom: 10px; display: flex; gap: 10px;">
+        <button onclick="fetchFromUrl('editor1')">🌐 Fetch URL</button>
+        <button onclick="document.getElementById('file1').click()">📁 Open File</button>
+        <input type="file" id="file1" hidden onchange="loadFile(this, 'editor1')">
+      </div>
+      <textarea id="editor1" placeholder="Paste Source JSON..."></textarea>
+      <div class="tool-grid">
         <button onclick="beautifyJSON('editor1')">Beautify</button>
+        <button onclick="minifyJSON('editor1')">Minify</button>
         <button onclick="transformJSON('editor1', 'sort')">Sort Keys</button>
         <button onclick="transformJSON('editor1', 'flatten')">Flatten</button>
-        <button onclick="transformJSON('editor1', 'unescape')">Unescape</button>
-        <button onclick="transformJSON('editor1', 'base64')">B64 Decode</button>
+        <button onclick="fixJSON('editor1')">🔧 Auto-Fix</button>
+        <button onclick="maskPII('editor1')">🔒 Mask PII</button>
+        <button onclick="generateTS('editor1')" class="accent">TS Interface</button>
+        <button onclick="viewTree('editor1')">🌳 Tree View</button>
         <button onclick="copyToClipboard('editor1', this)">Copy</button>
         <button class="danger" onclick="clearEditor('editor1')">Clear</button>
       </div>
     </div>
 
+    <!-- Target Editor -->
     <div class="editor-section">
       <div class="editor-header">
-        <h2>Target JSON</h2>
+        <h3>Target (New)</h3>
         <span id="status2" class="status">Empty</span>
       </div>
-      <textarea id="editor2" placeholder="Paste JSON 2..."></textarea>
-      <div class="button-group">
+      <div style="margin-bottom: 10px; display: flex; gap: 10px;">
+        <button onclick="fetchFromUrl('editor2')">🌐 Fetch URL</button>
+        <button onclick="document.getElementById('file2').click()">📁 Open File</button>
+        <input type="file" id="file2" hidden onchange="loadFile(this, 'editor2')">
+      </div>
+      <textarea id="editor2" placeholder="Paste Target JSON..."></textarea>
+      <div class="tool-grid">
         <button onclick="beautifyJSON('editor2')">Beautify</button>
+        <button onclick="minifyJSON('editor2')">Minify</button>
         <button onclick="transformJSON('editor2', 'sort')">Sort Keys</button>
         <button onclick="transformJSON('editor2', 'flatten')">Flatten</button>
-        <button onclick="transformJSON('editor2', 'unescape')">Unescape</button>
-        <button onclick="transformJSON('editor2', 'base64')">B64 Decode</button>
+        <button onclick="fixJSON('editor2')">🔧 Auto-Fix</button>
+        <button onclick="maskPII('editor2')">🔒 Mask PII</button>
+        <button onclick="generateTS('editor2')" class="accent">TS Interface</button>
+        <button onclick="viewTree('editor2')">🌳 Tree View</button>
         <button onclick="copyToClipboard('editor2', this)">Copy</button>
         <button class="danger" onclick="clearEditor('editor2')">Clear</button>
       </div>
     </div>
   </div>
 
-  <div style="text-align: center; margin: 30px 0;">
-    <button class="primary" onclick="compareJSON()">🚀 Compare Documents</button>
+  <div style="text-align: center; margin: 30px 0; display: flex; flex-direction: column; gap: 10px;">
+    <div style="display: flex; justify-content: center; gap: 20px; align-items: center;">
+        <input type="text" id="ignoreKeys" class="search-input" style="max-width: 300px;" placeholder="Ignore keys (comma separated)...">
+        <button class="primary" onclick="compareJSON()">🚀 Run Comparison</button>
+    </div>
   </div>
 
   <div class="diff-section">
     <div class="editor-header">
-      <h2>Comparison Results</h2>
+      <h2>Results & Advanced Queries</h2>
       <div id="diffStats"></div>
     </div>
 
     <div class="filters">
-      <input type="text" id="diffSearch" class="search-input" placeholder="Search by path or value..." oninput="filterResults()">
+      <input type="text" id="jsonPathQuery" class="search-input" placeholder="Query Results (e.g. data.users[0])..." oninput="runQuery()">
       <select id="diffTypeFilter" class="search-input" style="max-width: 150px;" onchange="filterResults()">
         <option value="all">All Changes</option>
-        <option value="added">Added Only</option>
-        <option value="removed">Removed Only</option>
-        <option value="changed">Modified Only</option>
+        <option value="added">Added</option>
+        <option value="removed">Removed</option>
+        <option value="changed">Modified</option>
       </select>
       <button onclick="toggleViewMode()" id="viewModeBtn">View: Table</button>
+      <button onclick="exportCSV()" class="accent">Export CSV</button>
     </div>
 
     <div id="tableContainer">
@@ -360,49 +406,85 @@
     </div>
 
     <div id="sideBySideContainer" class="hidden">
-      <div class="side-by-side">
-        <div id="sideLeft" class="side-panel"></div>
-        <div id="sideRight" class="side-panel"></div>
+      <div class="side-by-side" style="display: flex; gap: 2px; background: var(--border-color); border-radius: 8px; overflow: hidden; font-family: monospace; font-size: 12px;">
+        <div id="sideLeft" style="flex: 1; background: var(--card-bg); padding: 15px; min-height: 200px; overflow-x: auto;"></div>
+        <div id="sideRight" style="flex: 1; background: var(--card-bg); padding: 15px; min-height: 200px; overflow-x: auto;"></div>
       </div>
     </div>
 
-    <div style="margin-top: 20px;">
-      <button onclick="exportDiff()" id="exportBtn" disabled>Download Diff (JSON)</button>
+    <div style="margin-top: 20px; display: flex; gap: 10px;">
+      <button onclick="exportDiff()">Download JSON Diff</button>
     </div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div id="modal" class="modal hidden">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+      <h3 id="modalTitle">Output</h3>
+      <button onclick="closeModal()">Close</button>
+    </div>
+    <div id="modalBody"></div>
   </div>
 </div>
 
 <script>
   let lastDiffs = [];
   let viewMode = 'table';
+  let history = [];
 
-  // Initialize
   window.onload = () => {
     loadTheme();
     setupValidation("editor1", "status1");
     setupValidation("editor2", "status2");
     loadFromLocalStorage();
-    parseUrlParams();
   };
 
+  // Theme
   function toggleTheme() {
     const isDark = document.getElementById('themeToggle').checked;
     document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    localStorage.setItem('json-diff-theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('json-suite-theme', isDark ? 'dark' : 'light');
   }
 
   function loadTheme() {
-    const saved = localStorage.getItem('json-diff-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const saved = localStorage.getItem('json-suite-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.body.setAttribute('data-theme', saved);
     document.getElementById('themeToggle').checked = (saved === 'dark');
   }
 
+  // File & URL handling
+  function loadFile(input, editorId) {
+    const file = input.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById(editorId).value = e.target.result;
+        document.getElementById(editorId).dispatchEvent(new Event('input'));
+      };
+      reader.readAsText(file);
+    }
+  }
+
+  async function fetchFromUrl(editorId) {
+    const url = prompt("Enter JSON URL:");
+    if (!url) return;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      document.getElementById(editorId).value = JSON.stringify(data, null, 2);
+      document.getElementById(editorId).dispatchEvent(new Event('input'));
+    } catch (e) { alert("Fetch failed: " + e.message); }
+  }
+
+  // Validation
   function setupValidation(editorId, statusId) {
     const editor = document.getElementById(editorId);
     const status = document.getElementById(statusId);
     const validate = () => {
       const val = editor.value.trim();
-      localStorage.setItem('editor-' + editorId, val);
+      localStorage.setItem('suite-' + editorId, val);
       if (!val) { status.textContent = "Empty"; status.className = "status"; return; }
       try { JSON.parse(val); status.textContent = "Valid JSON"; status.className = "status valid"; }
       catch (e) { status.textContent = "Invalid JSON"; status.className = "status invalid"; }
@@ -412,7 +494,7 @@
 
   function loadFromLocalStorage() {
     ['editor1', 'editor2'].forEach(id => {
-      const saved = localStorage.getItem('editor-' + id);
+      const saved = localStorage.getItem('suite-' + id);
       if (saved) {
         document.getElementById(id).value = saved;
         document.getElementById(id).dispatchEvent(new Event('input'));
@@ -420,77 +502,105 @@
     });
   }
 
-  function transformJSON(editorId, type) {
-    const el = document.getElementById(editorId);
+  // Core Transformations
+  function beautifyJSON(id) {
     try {
-      let val = el.value.trim();
-      if (type === 'base64') {
-        el.value = atob(val.replace(/['"]/g, ''));
-        el.dispatchEvent(new Event('input'));
-        return;
-      }
-
-      let obj = JSON.parse(val);
-      if (type === 'sort') obj = sortObject(obj);
-      if (type === 'flatten') obj = flattenObject(obj);
-      if (type === 'unescape' && typeof obj === 'string') obj = JSON.parse(obj);
-
-      el.value = JSON.stringify(obj, null, 2);
-      el.dispatchEvent(new Event('input'));
-    } catch (e) { alert("Transformation failed. Check if input is valid."); }
+      const obj = JSON.parse(document.getElementById(id).value);
+      document.getElementById(id).value = JSON.stringify(obj, null, 2);
+    } catch (e) { alert("Invalid JSON"); }
   }
 
-  function sortObject(obj) {
-    if (Array.isArray(obj)) return obj.map(sortObject);
-    if (obj !== null && typeof obj === 'object') {
-      return Object.keys(obj).sort().reduce((acc, key) => {
-        acc[key] = sortObject(obj[key]);
-        return acc;
-      }, {});
-    }
-    return obj;
+  function minifyJSON(id) {
+    try {
+      const obj = JSON.parse(document.getElementById(id).value);
+      document.getElementById(id).value = JSON.stringify(obj);
+    } catch (e) { alert("Invalid JSON"); }
   }
 
-  function flattenObject(obj, prefix = '', res = {}) {
-    for (let key in obj) {
-      let propName = prefix ? prefix + '.' + key : key;
-      if (typeof obj[key] === 'object' && obj[key] !== null) {
-        flattenObject(obj[key], propName, res);
-      } else {
-        res[propName] = obj[key];
-      }
-    }
-    return res;
+  function fixJSON(id) {
+    let val = document.getElementById(id).value;
+    // Basic fixes: replace single quotes with double, fix trailing commas
+    val = val.replace(/'/g, '"')
+             .replace(/,(\s*[\]}])/g, '$1');
+    document.getElementById(id).value = val;
+    beautifyJSON(id);
   }
 
-  function copyToClipboard(editorId, btn) {
-    const val = document.getElementById(editorId).value;
-    navigator.clipboard.writeText(val).then(() => {
-      const old = btn.innerText;
-      btn.innerText = "Copied!";
-      setTimeout(() => btn.innerText = old, 2000);
-    });
+  function maskPII(id) {
+    try {
+      let obj = JSON.parse(document.getElementById(id).value);
+      const piiKeys = ['email', 'password', 'token', 'auth', 'secret', 'credit_card', 'phone', 'ssn'];
+      const mask = (o) => {
+        for (let key in o) {
+          if (piiKeys.some(pk => key.toLowerCase().includes(pk))) o[key] = "********";
+          else if (typeof o[key] === 'object' && o[key] !== null) mask(o[key]);
+        }
+      };
+      mask(obj);
+      document.getElementById(id).value = JSON.stringify(obj, null, 2);
+    } catch (e) { alert("Invalid JSON"); }
   }
 
-  function clearEditor(editorId) {
-    if(confirm("Clear content?")) {
-      document.getElementById(editorId).value = "";
-      document.getElementById(editorId).dispatchEvent(new Event('input'));
-    }
+  // Code Gen
+  function generateTS(id) {
+    try {
+      const obj = JSON.parse(document.getElementById(id).value);
+      let interfaces = [];
+      const getTsType = (val, name = 'RootObject') => {
+        if (Array.isArray(val)) {
+          const type = val.length ? getTsType(val[0], name + 'Item') : 'any';
+          return `${type}[]`;
+        }
+        if (typeof val === 'object' && val !== null) {
+          let str = `interface ${name} {\n`;
+          for (let key in val) {
+            str += `  ${key}: ${getTsType(val[key], name + capitalize(key))};\n`;
+          }
+          str += `}\n`;
+          interfaces.push(str);
+          return name;
+        }
+        return typeof val;
+      };
+      getTsType(obj);
+      showModal("TypeScript Interfaces", `<pre>${interfaces.reverse().join('\n')}</pre>`);
+    } catch (e) { alert("Invalid JSON"); }
   }
 
+  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  // Tree View
+  function viewTree(id) {
+    try {
+      const obj = JSON.parse(document.getElementById(id).value);
+      const buildTree = (data) => {
+        if (typeof data !== 'object' || data === null) return `<span>${JSON.stringify(data)}</span>`;
+        let html = '<ul>';
+        for (let key in data) {
+          const isObj = typeof data[key] === 'object' && data[key] !== null;
+          html += `<li><span class="${isObj ? 'tree-toggle' : ''}">${key}</span>: ${buildTree(data[key])}</li>`;
+        }
+        return html + '</ul>';
+      };
+      showModal("Structure Tree", `<div class="tree-view">${buildTree(obj)}</div>`);
+    } catch (e) { alert("Invalid JSON"); }
+  }
+
+  // Diff Logic
   function compareJSON() {
     const v1 = document.getElementById("editor1").value;
     const v2 = document.getElementById("editor2").value;
+    const ignoreList = document.getElementById("ignoreKeys").value.split(',').map(k => k.trim()).filter(k => k);
+
     try {
       const obj1 = JSON.parse(v1);
       const obj2 = JSON.parse(v2);
-      lastDiffs = diffObjects(obj1, obj2);
+      lastDiffs = diffObjects(obj1, obj2, "", ignoreList);
       renderResults();
-    } catch (e) { alert("Ensure both inputs are valid JSON."); }
+    } catch (e) { alert("Error: Check if inputs are valid JSON."); }
   }
 
-  function diffObjects(obj1, obj2, path = "") {
+  function diffObjects(obj1, obj2, path = "", ignoreKeys = []) {
     const diffs = [];
     if (obj1 === obj2) return diffs;
 
@@ -505,15 +615,16 @@
         const p = `${path}[${i}]`;
         if (i >= obj1.length) diffs.push({ type: "added", path: p, value: obj2[i] });
         else if (i >= obj2.length) diffs.push({ type: "removed", path: p, value: obj1[i] });
-        else diffs.push(...diffObjects(obj1[i], obj2[i], p));
+        else diffs.push(...diffObjects(obj1[i], obj2[i], p, ignoreKeys));
       }
     } else if (typeof obj1 === 'object') {
       const keys = new Set([...Object.keys(obj1), ...Object.keys(obj2)]);
       keys.forEach(k => {
+        if (ignoreKeys.includes(k)) return;
         const p = path ? `${path}.${k}` : k;
         if (!(k in obj1)) diffs.push({ type: "added", path: p, value: obj2[k] });
         else if (!(k in obj2)) diffs.push({ type: "removed", path: p, value: obj1[k] });
-        else diffs.push(...diffObjects(obj1[k], obj2[k], p));
+        else diffs.push(...diffObjects(obj1[k], obj2[k], p, ignoreKeys));
       });
     } else if (obj1 !== obj2) {
       diffs.push({ type: "changed", path: path || "root", oldValue: obj1, newValue: obj2 });
@@ -521,55 +632,60 @@
     return diffs;
   }
 
-  function renderResults() {
-    const output = document.getElementById("diffOutput");
-    const stats = document.getElementById("diffStats");
-    const exportBtn = document.getElementById("exportBtn");
+  // Search/Query
+  function runQuery() {
+    const query = document.getElementById("jsonPathQuery").value;
+    if (!query) { filterResults(); return; }
 
+    // Simple property accessor query logic
+    const filtered = lastDiffs.filter(d => d.path.includes(query));
+    if (viewMode === 'table') renderTable(filtered);
+    else renderSideBySide(filtered);
+  }
+
+  function renderResults() {
     if (lastDiffs.length === 0) {
-      output.innerHTML = '<div style="color: #27ae60; text-align:center; padding: 20px;">Identical!</div>';
-      exportBtn.disabled = true;
+      document.getElementById("diffStats").innerHTML = '<span style="color:#27ae60">✅ Documents are identical!</span>';
+      document.getElementById("diffOutput").innerHTML = '<div style="text-align:center; padding:60px; color:#27ae60; font-size: 1.2rem;">✨ <b>No differences found.</b> Both JSON files match perfectly!</div>';
+      document.getElementById("sideLeft").innerHTML = "Documents are identical";
+      document.getElementById("sideRight").innerHTML = "Documents are identical";
       return;
     }
 
-    exportBtn.disabled = false;
-    filterResults(); // This will trigger the actual table/sbs rendering
+    const added = lastDiffs.filter(d => d.type === 'added').length;
+    const removed = lastDiffs.filter(d => d.type === 'removed').length;
+    const changed = lastDiffs.filter(d => d.type === 'changed').length;
+    document.getElementById("diffStats").innerHTML = `
+      <span style="color:var(--added-color)">+${added}</span> |
+      <span style="color:var(--removed-color)">-${removed}</span> |
+      <span style="color:var(--changed-color)">~${changed}</span>
+    `;
+    filterResults();
   }
 
   function filterResults() {
-    const query = document.getElementById("diffSearch").value.toLowerCase();
     const type = document.getElementById("diffTypeFilter").value;
-
-    const filtered = lastDiffs.filter(d => {
-      const matchesType = type === 'all' || d.type === type;
-      const valStr = JSON.stringify(d).toLowerCase();
-      return matchesType && valStr.includes(query);
-    });
-
-    if (viewMode === 'table') {
-      renderTable(filtered);
-    } else {
-      renderSideBySide(filtered);
-    }
+    const filtered = lastDiffs.filter(d => type === 'all' || d.type === type);
+    if (viewMode === 'table') renderTable(filtered);
+    else renderSideBySide(filtered);
   }
 
   function renderTable(diffs) {
-    let html = `<table class="diff-table"><thead><tr><th style="width:30%">Path</th><th style="width:10%">Type</th><th>Values</th></tr></thead><tbody>`;
+    let html = `<table class="diff-table"><thead><tr><th style="width:35%">Path</th><th style="width:10%">Type</th><th>Values</th></tr></thead><tbody>`;
     html += diffs.map(d => `
       <tr class="diff-row-${d.type}">
         <td class="path-cell" onclick="copyText('${d.path}')">${d.path}</td>
         <td style="text-align:center"><b>${d.type === 'added' ? '+' : d.type === 'removed' ? '-' : '~'}</b></td>
-        <td>${d.type === 'changed' ?
-          `Old: <small>${JSON.stringify(d.oldValue)}</small><br>New: <small>${JSON.stringify(d.newValue)}</small>` :
+        <td style="font-family:monospace; font-size:12px;">${d.type === 'changed' ?
+          `Old: ${JSON.stringify(d.oldValue)}<br>New: ${JSON.stringify(d.newValue)}` :
           JSON.stringify(d.value || d.oldValue)}</td>
       </tr>
     `).join('');
     html += `</tbody></table>`;
-    document.getElementById("diffOutput").innerHTML = html;
+    document.getElementById("diffOutput").innerHTML = html || '<div style="text-align:center; padding:20px;">No differences found.</div>';
   }
 
   function renderSideBySide(diffs) {
-    // Basic implementation of Side by Side: Showing keys in two lists
     document.getElementById("sideLeft").innerHTML = diffs.filter(d => d.type !== 'added').map(d => `<div class="diff-row-${d.type}">[${d.path}] ${JSON.stringify(d.oldValue || d.value)}</div>`).join('');
     document.getElementById("sideRight").innerHTML = diffs.filter(d => d.type !== 'removed').map(d => `<div class="diff-row-${d.type}">[${d.path}] ${JSON.stringify(d.newValue || d.value)}</div>`).join('');
   }
@@ -582,9 +698,109 @@
     filterResults();
   }
 
+  // Exports
+  function exportCSV() {
+    if (!lastDiffs.length) return;
+    let csv = "Path,Type,Old Value,New Value\n";
+    lastDiffs.forEach(d => {
+      const oldVal = d.type === 'added' ? '' : JSON.stringify(d.oldValue || d.value).replace(/"/g, '""');
+      const newVal = d.type === 'removed' ? '' : JSON.stringify(d.newValue || d.value).replace(/"/g, '""');
+      csv += `"${d.path}","${d.type}","${oldVal}","${newVal}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "json_diff.csv"; a.click();
+  }
+
+  function exportDiff() {
+    const blob = new Blob([JSON.stringify(lastDiffs, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "diff_results.json"; a.click();
+  }
+
+  // Utils
   function copyText(txt) {
     navigator.clipboard.writeText(txt);
-    alert("Path copied: " + txt);
+    const notification = document.createElement('div');
+    notification.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#2ecc71; color:white; padding:10px 20px; border-radius:5px; z-index:10000;';
+    notification.innerText = "Path copied: " + txt;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 2000);
+  }
+
+  function copyToClipboard(id, btn) {
+    const val = document.getElementById(id).value;
+    navigator.clipboard.writeText(val).then(() => {
+      const old = btn.innerText;
+      btn.innerText = "Copied!";
+      setTimeout(() => btn.innerText = old, 2000);
+    });
+  }
+
+  function showModal(title, body) {
+    document.getElementById("modalTitle").innerText = title;
+    document.getElementById("modalBody").innerHTML = body;
+    document.getElementById("modal").classList.remove('hidden');
+    // Prevent background scroll
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    document.getElementById("modal").classList.add('hidden');
+    // Restore scroll
+    document.body.style.overflow = 'auto';
+  }
+
+  function handleGlobalClick(e) {
+    const modal = document.getElementById('modal');
+    // If clicking the background of the modal (the overlay)
+    if (e.target === modal) {
+      closeModal();
+    }
+  }
+
+  // Add Escape key listener
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  function clearEditor(id) {
+    if(confirm("Clear content?")) {
+      document.getElementById(id).value = "";
+      document.getElementById(id).dispatchEvent(new Event('input'));
+    }
+  }
+
+  function transformJSON(id, type) {
+    const el = document.getElementById(id);
+    try {
+      let obj = JSON.parse(el.value);
+      if (type === 'sort') {
+        const sort = (o) => {
+          if (Array.isArray(o)) return o.map(sort);
+          if (o !== null && typeof o === 'object') {
+            return Object.keys(o).sort().reduce((acc, k) => { acc[k] = sort(o[k]); return acc; }, {});
+          }
+          return o;
+        };
+        obj = sort(obj);
+      }
+      if (type === 'flatten') {
+        const flat = (o, p = '', r = {}) => {
+          for (let k in o) {
+            let n = p ? `${p}.${k}` : k;
+            if (typeof o[k] === 'object' && o[k] !== null) flat(o[k], n, r);
+            else r[n] = o[k];
+          }
+          return r;
+        };
+        obj = flat(obj);
+      }
+      el.value = JSON.stringify(obj, null, 2);
+      el.dispatchEvent(new Event('input'));
+    } catch (e) { alert("Invalid JSON"); }
   }
 
   function shareLink() {
@@ -592,31 +808,7 @@
     const v2 = document.getElementById("editor2").value;
     const state = btoa(JSON.stringify({v1, v2}));
     const url = window.location.origin + window.location.pathname + "?state=" + encodeURIComponent(state);
-    navigator.clipboard.writeText(url).then(() => alert("Shareable link copied to clipboard!"));
-  }
-
-  function parseUrlParams() {
-    const params = new URLSearchParams(window.location.search);
-    const state = params.get('state');
-    if (state) {
-      try {
-        const {v1, v2} = JSON.parse(atob(state));
-        document.getElementById("editor1").value = v1;
-        document.getElementById("editor2").value = v2;
-        document.getElementById("editor1").dispatchEvent(new Event('input'));
-        document.getElementById("editor2").dispatchEvent(new Event('input'));
-        compareJSON();
-      } catch(e) {}
-    }
-  }
-
-  function exportDiff() {
-    const blob = new Blob([JSON.stringify(lastDiffs, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "diff_results.json";
-    a.click();
+    navigator.clipboard.writeText(url).then(() => alert("Shareable link copied!"));
   }
 </script>
 
