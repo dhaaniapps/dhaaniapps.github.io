@@ -62,10 +62,14 @@
         <li><strong>Backup & Restore:</strong> If you use the "Backup Data" feature, a copy of your database is saved to a location of your choice on your device or personal cloud storage. This data is managed entirely by you.</li>
     </ul>
 
-    <h3>B. Emergency Contacts and SMS</h3>
+    <h3>B. Guardian Emergency Feature</h3>
+    <p>If you choose to use the optional "Guardian" emergency feature, the app collects and stores:</p>
     <ul>
-        <li><strong>Emergency Alerts:</strong> If you configure the "Safety & Emergency" feature, the app will access your selected contacts to retrieve phone numbers.</li>
-        <li><strong>SMS Transmission:</strong> The App uses the <code>SEND_SMS</code> permission to automatically send alerts to your chosen contacts only when you fail to respond to a pre-set safety reminder. These messages are sent directly from your device.</li>
+        <li><strong>Email Addresses:</strong> Used to send automated alerts via SMTP to your designated contacts.</li>
+        <li><strong>Phone Numbers:</strong> Used to send automated emergency SMS to your chosen recipients.</li>
+        <li><strong>Storage:</strong> This data is stored locally on your device within a secure database.</li>
+        <li><strong>Transmission:</strong> Data is transmitted off-device only when an emergency trigger is activated (e.g., an unresponsive reminder). At that point, the data is sent to the mail server (via SMTP) or SMS gateway to notify your chosen contacts.</li>
+        <li><strong>Privacy:</strong> We do not use this information for marketing or share it with any third parties beyond the necessary transmission to notify your emergency contacts.</li>
     </ul>
 
     <h3>C. AI Features (Summarization and OCR)</h3>
@@ -89,8 +93,8 @@
     <h2>3. Data Safety</h2>
     <p>In accordance with Google Play's Data Safety requirements:</p>
     <ul>
-        <li><strong>Data Collected:</strong> Contact info (if using Emergency features) only for adding this is local to your device not using any host server, App interactions, and Device IDs (for ads).</li>
-        <li><strong>Data Shared:</strong> Device IDs are shared with third-party advertising partners (AdMob).</li>
+        <li><strong>Data Collected:</strong> Contact info (Phone numbers and Email addresses if using Emergency features). This data is stored locally on your device. App interactions and Device IDs (for ads) are also collected.</li>
+        <li><strong>Data Shared:</strong> Device IDs are shared with third-party advertising partners (AdMob). Emergency contact info is shared only with the relevant gateways (SMS/SMTP) upon user-triggered emergency events.</li>
         <li><strong>Security:</strong> All data is handled using modern Android security standards.</li>
     </ul>
 
